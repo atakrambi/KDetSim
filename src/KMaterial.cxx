@@ -41,9 +41,10 @@ Double_t KM(TH1D *his, Float_t T, Float_t Start, Short_t Rev)
 
             I2 += KAlpha(EF, T, Rev, KMaterial::ImpactIonization) * TMath::Exp(It) * dx;
         }
-
-    printf("I1=%f, I2=%f It=%f (dx=%e, expI1=%e)\n", I1, I2, It, dx, TMath::Exp(I1));
-    return (TMath::Exp(I1) / (1 - I2));
+     // Printout the components of the intergral - uncomment for debug
+     //    printf("I1=%f, I2=%f It=%f (dx=%e, expI1=%e)\n", I1, I2, It, dx, TMath::Exp(I1));
+     //  
+     return (TMath::Exp(I1) / (1 - I2));
 }
 
 Double_t KAlpha(Double_t E, Double_t T, Short_t Charg, Int_t which)
@@ -82,7 +83,20 @@ Double_t KAlpha(Double_t E, Double_t T, Short_t Charg, Int_t which)
 	    else
             alp = 44.3 * TMath::Exp(-(96.6+0.0499*T)/E);
         break;
-    case 3: // Chynoweth original 1958 silicon
+    case 8: // Chynoweth original 1958 silicon parametrization
+      if (Charg > 0)
+        	    alp = KMaterial::haIO * TMath::Exp(-KMaterial::hbIO/E);
+      	    else
+                  alp = KMaterial::eaIO * TMath::Exp(-KMaterial::ebIO/E);
+        break;
+      case 9:
+      if (Charg > 0)
+            alp = KMaterial::haIO * TMath::Exp(-KMaterial::haIO * (KMaterial::hbIO/E-1));
+        else
+            alp = KMaterial::eaIO * TMath::Exp(-KMaterial::ebIO * (KMaterial::ecIO/E-1));
+        break;
+
+
       break;
       //
 
@@ -132,6 +146,12 @@ ClassImp(KMaterial)
 Float_t KMaterial::Temperature = 293;
 Int_t KMaterial::Mobility = 1;
 Int_t KMaterial::ImpactIonization = 0;
+Float_t KMaterial::eaIO = 0;
+Float_t KMaterial::haIO = 0;
+Float_t KMaterial::ebIO = 0;
+Float_t KMaterial::hbIO = 0;
+Float_t KMaterial::ecIO = 0;
+Float_t KMaterial::hcIO = 0;
 
 Float_t KMaterial::Perm(Int_t Material)
 {

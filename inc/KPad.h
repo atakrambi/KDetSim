@@ -40,9 +40,12 @@ private:
   Float_t        rtbis(float, float, float);
   Float_t        PoEqSolve(Float_t);
   void           Derivs(float x,float *,float *);
-  TArrayF PhyPot;       //electric potential
-  TArrayF PhyField;     //electric field 
 public:
+   TArrayF PhyPot;       //electric potential
+   TArrayF PhyField;     //electric field 
+
+
+
    TF1     *Neff;   // effective dopping concentration 
    Float_t CellY;   // thickness of the diode
    Float_t CellX;   // width of the diode
@@ -61,6 +64,8 @@ public:
    void    GetField();
    void    GetRamoField();
 
+
+  
   ClassDef(KPad,1) 
 };
 

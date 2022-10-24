@@ -49,12 +49,12 @@
     // Show electric potential
     TCanvas c2;
     c2.cd();
-    det->Draw("EPxy", 99).Draw("COLZ");
+    det->Draw("EPxy", 99)->Draw("COLZ");
     // calcualte induced current
     TCanvas c3;
     c3.cd();
     det->MipIR(100);
-    det->sum.Draw();
-    det->neg.Draw("SAME");
-    det->pos.Draw("SAME");
+    det->sum->Draw("HIST");
+    det->neg->Draw("HISTSAME");
+    det->pos->Draw("HISTSAME");
 }

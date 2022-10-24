@@ -39,7 +39,12 @@ public:
     static Float_t Temperature;    // Temperature
     static Int_t Mobility;         // mobility model for each material
     static Int_t ImpactIonization; // impact ionization model
-
+    static Float_t eaIO;            // Impact ionization model - prefactor for electrons (applied only for ImpactIonizatio==9)
+    static Float_t ebIO;            // Impact ionization model - critical field for holes (applied only for ImpactIonizatio==9)
+    static Float_t ecIO;            // Impact ionization model - critical field for holes (applied only for ImpactIonizatio==9)
+    static Float_t haIO;            // Impact ionization model - prefactor for holes (applied only for ImpactIonizatio==9)
+    static Float_t hbIO;            // Impact ionization model - critical field for holes (applied only for ImpactIonizatio==9)
+    static Float_t hcIO;            // Impact ionization model - critical field for holes (applied only for ImpactIonizatio==9)
     //////////////////////////////////////////////////////
 
     KMaterial() { Mat = 1; } // MobMod=1;}

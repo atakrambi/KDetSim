@@ -38,6 +38,7 @@
 #include "KField.h"
 #include "TVector3.h"
 
+
 #ifdef MSVC
 class __declspec(dllexport) KDetector : public KGeometry, public KMaterial {
 #else
@@ -113,7 +114,7 @@ public:
   void SetVoltage(Float_t x,Int_t calnow=1) {Voltage=x; if(calnow) CalPhyField(); };
   void SetNeff(TF3 *neff,Int_t calnow=1) {NeffF=neff; if(calnow) CalPhyField(); };
   void SetNeff(TH3F *neff,Int_t calnow=1) {NeffH=neff; if(calnow) CalPhyField(); };
-
+  void ImportField(KDetector* source, Char_t* option, int mode);
   // Simulation of drift
 
   void SetEntryPoint(Float_t x, Float_t y, Float_t z) {enp[0]=x; enp[1]=y; enp[2]=z;};

@@ -2,6 +2,7 @@
 #include "KDetector.h"
 #include "TFile.h"
 
+
 #define ABS(x) x>0?x:-x
 #define PREDZNAK(x) x>0?1:-1
 
@@ -908,7 +909,6 @@ return histo;
 
 void KDetector::UserIonization(Int_t div, Float_t *x, Float_t *y, Float_t *z, Float_t *Q)
 {
-  // The simulation of the drift for the laser induced carriers - attenuation of the light. 
   // A track is devided into Int_ div buckets. Each bucket is drifted in the field. The
   // induced currents for each carrier is calculated as the sum  all buckets. 
   //	Int_t MobMod; mobility model
@@ -1696,3 +1696,309 @@ for(i=0;i<div;i++)
 
 
 
+void KDetector::ImportField(KDetector* source, Char_t* option, int mode)
+{
+// 	Imports a precalculated field from a source detector. 
+//     The import is based on bin indexes, not on detector dimensions in micrometers
+// 	Number of bins in the destination detector must be multiples of number of bins in the source detector in x, y, z with multiplicity factors Mx, My, Mz
+//     option:  G - geometry
+//              M - material
+//              E - electric field
+//              N - Neff
+//              W - weighting field
+//     mode:    0 - import cells periodically Mx, My, Mz times in each dimension
+//              1 - fit a single cell on a new mesh: (M-1) cells are added in each dimension by trilinear interpolation between lattice points in the source detector. The last M cells have all the same value because there are no further points to interpolate between.
+    
+    Int_t sourceBinsX = source->nx;
+    Int_t sourceBinsY = source->ny;
+    Int_t sourceBinsZ = source->nz;
+    Int_t destBinsX   = nx;
+    Int_t destBinsY   = ny;
+    Int_t destBinsZ   = nz;
+    
+    Int_t Mx=-1111, My=-1111, Mz=-1111;   // multiplicity factors for histograms
+    
+    if (destBinsX % sourceBinsX == 0) Mx = destBinsX/sourceBinsX; 
+    if (destBinsY % sourceBinsY == 0) My = destBinsY/sourceBinsY; 
+    if (destBinsZ % sourceBinsZ == 0) Mz = destBinsZ/sourceBinsZ; 
+          
+    if (Mx==-1111 || My==-1111 || Mz==-1111){
+      printf("ImportField - Error: mesh dimension in destination is not a multiple of mesh dimension in source. Axis: %s%s%s. Skipping.", 
+      Mx==-1111 ? "x":"", 
+      My==-1111 ? "y":"",
+      Mz==-1111 ? "z":""
+      );
+      return;
+    }
+    
+    // Get source and destination histograms
+    TString opt(option);
+    TList ls;
+    TList ld;
+    
+    if(opt.Contains("G")){
+      ls.Add(source->EG);  
+      ld.Add(EG);
+      printf("Importing Geometry\n");
+    }
+    if(opt.Contains("M")){
+      ls.Add(source->DM);  
+      ld.Add(DM);
+      printf("Importing Material\n");
+    }
+    if(opt.Contains("N")){
+      ls.Add(source->NeffH);  
+      ld.Add(NeffH);
+      printf("Importing Neff\n");
+    }
+    if(opt.Contains("E")){
+      ls.Add(source->Real->U);  
+      ls.Add(source->Real->Ex);  
+      ls.Add(source->Real->Ey);  
+      ls.Add(source->Real->Ez);  
+      ls.Add(source->Real->E);  
+      
+      if (Real->U == NULL){
+        Real->U=new TH3F();
+        EG->Copy(*(Real->U));
+        Real->U->Reset();
+      }
+      if (Real->Ex == NULL){
+        Real->Ex=new TH3F();
+        EG->Copy(*(Real->Ex));
+        Real->Ex->Reset();
+      }
+      if (Real->Ey == NULL){
+        Real->Ey=new TH3F();
+        EG->Copy(*(Real->Ey));
+        Real->Ey->Reset();
+      }
+      if (Real->Ez == NULL){
+        Real->Ez=new TH3F();
+        EG->Copy(*(Real->Ez));
+        Real->Ez->Reset();
+      }
+      if (Real->E == NULL){
+        Real->E=new TH3F();
+        EG->Copy(*(Real->E));
+        Real->E->Reset();
+      }
+      ld.Add(Real->U);
+      ld.Add(Real->Ex);
+      ld.Add(Real->Ey);
+      ld.Add(Real->Ez);
+      ld.Add(Real->E);
+      printf("Importing Electric Field\n");
+    }
+    if(opt.Contains("W")){
+      ls.Add(source->Ramo->U);  
+      ls.Add(source->Ramo->Ex);  
+      ls.Add(source->Ramo->Ey);  
+      ls.Add(source->Ramo->Ez);  
+      ls.Add(source->Ramo->E);  
+      
+      if (Ramo->U == NULL){
+        Ramo->U=new TH3F();
+        EG->Copy(*(Ramo->U));
+        Ramo->U->Reset();
+      }
+      if (Ramo->Ex == NULL){
+        Ramo->Ex=new TH3F();
+        EG->Copy(*(Ramo->Ex));
+        Ramo->Ex->Reset();
+      }
+      if (Ramo->Ey == NULL){
+        Ramo->Ey=new TH3F();
+        EG->Copy(*(Ramo->Ey));
+        Ramo->Ey->Reset();
+      }
+      if (Ramo->Ez == NULL){
+        Ramo->Ez=new TH3F();
+        EG->Copy(*(Ramo->Ez));
+        Ramo->Ez->Reset();
+      }
+      if (Ramo->E == NULL){
+        Ramo->E=new TH3F();
+        EG->Copy(*(Ramo->E));
+        Ramo->E->Reset();
+      }
+      ld.Add(Ramo->U);
+      ld.Add(Ramo->Ex);
+      ld.Add(Ramo->Ey);
+      ld.Add(Ramo->Ez);
+      ld.Add(Ramo->E);
+      printf("Importing Weighting Field\n");
+    }
+    
+    int xx, yy, zz; // destination bin index
+    switch(mode){
+      case 0: 
+        // Fill cells periodically
+        
+        // Loop over source bins in 3d
+        for (int ix=1; ix<=sourceBinsX; ix++){
+          for (int iy=1; iy<=sourceBinsY; iy++){
+            for (int iz=1; iz<=sourceBinsZ; iz++){
+              // Loop over every cell repetition
+              for (int imx=0; imx<Mx; imx++){
+                for (int imy=0; imy<My; imy++){
+                  for (int imz=0; imz<Mz; imz++){
+                    // Calculate destination bin index
+                    xx = imx*sourceBinsX + ix;  
+                    yy = imy*sourceBinsY + iy;
+                    zz = imz*sourceBinsZ + iz;
+                    // Copy object contents to destination
+                    for (int ih=0; ih<ls.GetSize(); ih++){
+                      TH3* hs = (TH3*)(ls.At(ih));
+                      TH3* hd = (TH3*)(ld.At(ih));
+                      hd->SetBinContent(xx,yy,zz, hs->GetBinContent(ix,iy,iz));
+                    }
+                  }
+                } 
+              }
+            }
+          }
+        }
+        break;
+      case 1:
+        // Source has smaller granularity than destination - fill intermediate bins by trilinear interpolation
+        // See for example https://en.wikipedia.org/wiki/Trilinear_interpolation
+              
+        Float_t xd,yd,zd;
+        Float_t c000,c010,c100,c110,c001,c011,c101,c111, c00,c01,c10,c11, c0,c1, c;
+        
+        // Loop over source bins in 3d
+        // A decrementing loop is used to preserve precision around the electrodes, since they are usually located on top (at highest bin indexes). The last M iterations (i.e. smallest bin indexes) contain the same value, since running out of lattice points for interpolation.
+        for (int ix=sourceBinsX; ix>=1; ix--){
+          for (int iy=sourceBinsY; iy>=1; iy--){
+            for (int iz=sourceBinsZ; iz>=1; iz--){
+              // when source reaches last bin in each dimension, copy its values to last M-1 bins in destination (no interpolation is done)
+              int incrX = ix==1 ? 0 : -1;  
+              int incrY = iy==1 ? 0 : -1;
+              int incrZ = iz==1 ? 0 : -1;
+              
+              for (int ih=0; ih<ls.GetSize(); ih++){
+                TH3* hs = (TH3*)(ls.At(ih));
+                TH3* hd = (TH3*)(ld.At(ih));
+                    
+                c000=hs->GetBinContent(ix,      iy,       iz);
+                c001=hs->GetBinContent(ix,      iy,       iz+incrZ);
+                c010=hs->GetBinContent(ix,      iy+incrY, iz);
+                c011=hs->GetBinContent(ix,      iy+incrY, iz+incrZ);
+                c100=hs->GetBinContent(ix+incrX,iy,       iz);
+                c101=hs->GetBinContent(ix+incrX,iy,       iz+incrZ);
+                c110=hs->GetBinContent(ix+incrX,iy+incrY, iz);
+                c111=hs->GetBinContent(ix+incrX,iy+incrY, iz+incrZ);
+                
+                // Loop within every lattice point
+                for (int imx=0; imx<Mx; imx++){
+                  for (int imy=0; imy<My; imy++){
+                    for (int imz=0; imz<Mz; imz++){
+                      xd = (1.0*imx)/Mx;
+                      yd = (1.0*imy)/My;
+                      zd = (1.0*imz)/Mz;
+                      
+                      c00 = c000*(1-xd) + c100*xd;
+                      c01 = c001*(1-xd) + c101*xd;
+                      c10 = c010*(1-xd) + c110*xd;
+                      c11 = c011*(1-xd) + c111*xd;
+                  
+                      c0 = c00*(1-yd) + c10*yd;
+                      c1 = c01*(1-yd) + c11*yd;
+                  
+                      c = c0*(1-zd) + c1*zd;  // This is the result
+                      
+                      // Calculate destination bin index
+//                       xx = 1 + imx + Mx*(ix-1);  // ix starts at 1
+//                       yy = 1 + imy + My*(iy-1);  
+//                       zz = 1 + imz + Mz*(iz-1);  
+                      xx = Mx*ix - imx; 
+                      yy = My*iy - imy;  
+                      zz = Mz*iz - imz;  
+                
+                      hd->SetBinContent(xx,yy,zz, c);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        break;
+
+//       case 1:
+//         // Source has smaller granularity than destination - fill intermediate bins by trilinear interpolation
+//         // See for example https://en.wikipedia.org/wiki/Trilinear_interpolation
+//               
+//         Float_t dx,dy,dz;   // bin width; dx = x1-x0, etc.
+//         Float_t xd,yd,zd;
+//         Float_t c000,c010,c100,c110,c001,c011,c101,c111, c00,c01,c10,c11, c0,c1, c;
+//         
+//         // Loop over source bins in 3d
+//         for (int ix=1; ix<=sourceBinsX; ix++){
+//           for (int iy=1; iy<=sourceBinsY; iy++){
+//             for (int iz=1; iz<=sourceBinsZ; iz++){
+//               // when source reaches last bin in each dimension, copy its values to last M-1 bins in destination (no interpolation is done)
+//               int incrX = ix==sourceBinsX ? 0 : 1;  
+//               int incrY = iy==sourceBinsY ? 0 : 1;
+//               int incrZ = iz==sourceBinsZ ? 0 : 1;
+//               
+//               for (int ih=0; ih<ls.GetSize(); ih++){
+//                 TH3* hs = (TH3*)(ls.At(ih));
+//                 TH3* hd = (TH3*)(ld.At(ih));
+//                     
+//                 dx = hs->GetXaxis()->GetBinWidth(ix);
+//                 dy = hs->GetYaxis()->GetBinWidth(iy);
+//                 dz = hs->GetZaxis()->GetBinWidth(iz);
+//                 
+//                 c000=hs->GetBinContent(ix,      iy,       iz);
+//                 c001=hs->GetBinContent(ix,      iy,       iz+incrZ);
+//                 c010=hs->GetBinContent(ix,      iy+incrY, iz);
+//                 c011=hs->GetBinContent(ix,      iy+incrY, iz+incrZ);
+//                 c100=hs->GetBinContent(ix+incrX,iy,       iz);
+//                 c101=hs->GetBinContent(ix+incrX,iy,       iz+incrZ);
+//                 c110=hs->GetBinContent(ix+incrX,iy+incrY, iz);
+//                 c111=hs->GetBinContent(ix+incrX,iy+incrY, iz+incrZ);
+//                 
+//                 // Loop within every lattice point
+//                 for (int imx=0; imx<Mx; imx++){
+//                   for (int imy=0; imy<My; imy++){
+//                     for (int imz=0; imz<Mz; imz++){
+// //                       xd = (1.0*imx)/dx;
+// //                       yd = (1.0*imy)/dx;
+// //                       zd = (1.0*imz)/dz;
+//                       xd = (1.0*imx)/Mx;
+//                       yd = (1.0*imy)/My;
+//                       zd = (1.0*imz)/Mz;
+//                       
+//                       c00 = c000*(1-xd) + c100*xd;
+//                       c01 = c001*(1-xd) + c101*xd;
+//                       c10 = c010*(1-xd) + c110*xd;
+//                       c11 = c011*(1-xd) + c111*xd;
+//                   
+//                       c0 = c00*(1-yd) + c10*yd;
+//                       c1 = c01*(1-yd) + c11*yd;
+//                   
+//                       c = c0*(1-zd) + c1*zd;  // This is the result
+//                       
+//                       // Calculate destination bin index
+//                       xx = 1 + imx + Mx*(ix-1);  // ix starts at 1
+//                       yy = 1 + imy + My*(iy-1);  
+//                       zz = 1 + imz + Mz*(iz-1);  
+//                 
+//                       hd->SetBinContent(xx,yy,zz, c);
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           }
+//         }
+//         break;
+        default:
+          printf("ImportField - Warning: no copy mode selected. Choose how=0 (periodically), 1 (stretch cell over entire detector)");
+          break;
+    };
+
+	return;
+}
