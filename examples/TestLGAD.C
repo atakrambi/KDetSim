@@ -51,7 +51,7 @@
     {
      Ef[i]->Draw("L");  //Plot lines 
      TH1D *EfH=GraphToHist(Ef[i]); //convert to histogram so that ionization integral can be calculated
-     max[i]=KM(EfH,1)*3450; //Calculation of ionization integral
+     max[i]=KM(EfH,det.Temperature,1)*3450; //Calculation of ionization integral
      printf("Max. multiplication = %f (ionization integral)\n",max[i]);
     }
 

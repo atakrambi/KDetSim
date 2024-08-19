@@ -21,14 +21,23 @@ CXX           = cl
 LD 	      = link
 
 #VC 9.0
-CXXFLAGS      =  /DLL  -Zc:__cplusplus -std:c++14  /MD  /EHsc -nologo /Ox /D "MSVC" /D "WIN32"   -D_WIN32 -I$(ROOTSYS)/include -I$(INCDIR)
+CXXFLAGS      =  /DLL /D "MSVC" /D "WIN32" -nologo -Zc:__cplusplus -std:c++17 -MD -GR -EHsc- -W1 -O2 -D_WIN32 -I$(ROOTSYS)/include -I$(INCDIR) 
+
+#CXXFLAGS      =  /DLL /D "MSVC" /D "WIN32" -Iinclude -nologo -IC:/ROOT -I/src/build/win -FIw32pragma.h -FIsehmap.h -Zc:__cplusplus -std:c++17 -MD -GR -EHsc -W3 -wd4141 -wd4291 -wd4244 -wd4049 -wd4146m -wd4250 -wd4624 -wd4267 -D_XKEYCHECK_H -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS -D_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING -D_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING  -IC:/ROOT-CI/src/build/win -I$(ROOTSYS)/include -I$(INCDIR) 
+
+
 
 #VC 6.0
 #CXXFLAGS      = $(cvarsdll) -GX -GR /TP /Zl /O2 /G6 /Ze /MD -D_WINDOWS -I$(ROOTSYS)/include -I$(INCDIR)
 #LD            = $(link)
-LDFLAGS       = $(conlflags)  /NODEFAULTLIB:LIBCMT  
+LDFLAGS       = $(conlflags) /NODEFAULTLIB:LIBCMT  
 SOFLAGS       = $(dlllflags)
-ROOTLIBS      = $(ROOTSYS)/lib/*.lib
+ROOTLIBS      = $(ROOTSYS)\lib\*.lib
+#ROOTLIBS      = $(ROOTSYS)\lib\libCore.lib $(ROOTSYS)\lib\libImt.lib $(ROOTSYS)\lib\libRIO.lib $(ROOTSYS)\lib\libNet.lib $(ROOTSYS)\lib\libHist.lib $(ROOTSYS)\lib\libGraf.lib $(ROOTSYS)\lib\libGraf3d.lib $(ROOTSYS)\lib\libGpad.lib $(ROOTSYS)\lib\libROOTVecOps.lib $(ROOTSYS)\lib\libTree.lib $(ROOTSYS)\lib\libTreePlayer.lib $(ROOTSYS)\lib\libRint.lib $(ROOTSYS)\lib\libPostscript.lib $(ROOTSYS)\lib\libMatrix.lib $(ROOTSYS)\lib\libPhysics.lib $(ROOTSYS)\lib\libMathCore.lib $(ROOTSYS)\lib\libThread.lib $(ROOTSYS)\lib\libROOTDataFrame.lib $(ROOTSYS)\lib\libGui.lib 
+
+
+
+
 #VC 6.0
 #LIBS          = $(ROOTLIBS) $(guilibsdll) MSVCIRT.LIB
 LIBS          = $(ROOTLIBS) $(guilibsdll) MSVCPRT.LIB
@@ -117,7 +126,7 @@ all:       KDetSim
 
 KDetSim:  $(OBJS) $(SRCS)
 		$(LD) -lib $(LDFLAGS) $(OBJS) $(OutPutOpt)$(KDETSIMLIB) 
-                $(LD) /DLL $(LDFLAGS) $(OBJS) $(OutPutOpt)$(KDETSIMDLL) $(ROOTLIBS) $(LIBS)
+	        $(LD) /DLL $(LDFLAGS) $(OBJS) $(OutPutOpt)$(KDETSIMDLL) $(ROOTLIBS) $(LIBS)
 
 
 

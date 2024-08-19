@@ -6,6 +6,7 @@ Double_t KM(TH1D *his, Float_t T, Float_t Start, Short_t Rev)
     // http://www.iue.tuwien.ac.at/phd/park/node36.html
     // The function calculates Gain factor in given electric field
     // TH1D *his;  - electric field profile
+    // FLoat_t T;  - temperature
     // Float_t Start; - creation point of the e-h pair
     //                  for multiplication junction Start=0;
     //                  the opposite side of the junction Start=thickness;
